@@ -5,11 +5,14 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 
 import usersRouter from './routes/intern.js';
 
 const app = express();
 const port = process.env.PORT || 3010;
+
+app.set('trust proxy', 1); // Render is behind a proxy — trust X-Forwarded-For
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -24,7 +27,12 @@ app.get('/', (req, res) => {
 });
 
 
-// protected route
+const formLimiter = rateLimit({ windowMs: 60_000, max: 10, message: { error: 'too many submissions, slow down' } });
+const internsLimiter = rateLimit({ windowMs: 60_000, max: 60, message: { error: 'too many requests' } });
+
+app.use('/form', formLimiter);
+app.use('/interns', internsLimiter);
+
 app.use('/', usersRouter);
 
 

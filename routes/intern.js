@@ -6,7 +6,16 @@ import db from '../config/db.js';
 
 const router = express.Router();
 
-  const upload = multer({ storage: multer.memoryStorage() });
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+        return cb(new Error('only jpeg/png/webp allowed'));
+      }
+      cb(null, true);
+    },
+  });
 
   function uploadBuffer(buffer) {
     return new Promise((resolve, reject) => {
