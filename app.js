@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 
 // error handler
   app.use((err, req, res, next) => {
-    console.error(err);
+    if (err.status !== 404) console.error(err);
     res.status(err.status || 500).json({
       error: err.message,
       ...(req.app.get('env') === 'development' && { stack: err.stack }),
