@@ -13,7 +13,7 @@ import attendanceRouter from './routes/attendance.js';
 const app = express();
 const port = process.env.PORT || 3010;
 
-app.set('trust proxy', 1); // Render is behind a proxy — trust X-Forwarded-For
+app.set('trust proxy', 3); // Render is behind a proxy — trust X-Forwarded-For
 
 app.use(logger('dev'));
 app.use(express.json());
