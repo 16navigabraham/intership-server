@@ -30,7 +30,7 @@ app.use(cors({
   origin: (origin, cb) => {
     // allow no-origin (curl/Postman) and whitelisted origins
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error('not allowed by CORS'));
+    cb(null, false);
   },
 }));
 

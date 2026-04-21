@@ -37,6 +37,17 @@ try {
 // backfill any NULL cohort_year rows to 2026 (one-time)
 await db.execute('UPDATE interns SET cohort_year = 2026 WHERE cohort_year IS NULL');
 
+// review status: 'pending' | 'admitted' | 'rejected'
+try {
+  await db.execute("ALTER TABLE interns ADD COLUMN status TEXT DEFAULT 'pending'");
+} catch (err) {
+  if (!/duplicate column/i.test(err.message)) throw err;
+}
+
+// backfill: sync status from legacy is_active values (one-time for old rows)
+await db.execute("UPDATE interns SET status = 'admitted' WHERE status IS NULL AND is_active = 1");
+await db.execute("UPDATE interns SET status = 'pending' WHERE status IS NULL");
+
 // attendance log — one row per intern per date
 await db.execute(`
   CREATE TABLE IF NOT EXISTS attendance (

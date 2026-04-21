@@ -88,16 +88,17 @@ const router = express.Router();
         return res.status(400).json({ error: 'Matriculation_Number required' });
       }
       const value = admit ? 1 : 0;
+      const status = admit ? 'admitted' : 'rejected';
 
       const result = await db.execute({
-        sql: 'UPDATE interns SET is_active = ? WHERE Matriculation_Number = ?',
-        args: [value, Matriculation_Number],
+        sql: 'UPDATE interns SET is_active = ?, status = ? WHERE Matriculation_Number = ?',
+        args: [value, status, Matriculation_Number],
       });
 
       if (result.rowsAffected === 0) {
         return res.status(404).json({ error: 'intern not found' });
       }
-      res.json({ Matriculation_Number, is_active: value });
+      res.json({ Matriculation_Number, is_active: value, status });
     } catch (err) { next(err); }
   });
 
@@ -106,10 +107,24 @@ const router = express.Router();
     try {
       const year = Number(req.query.year) || new Date().getFullYear();
       const result = await db.execute({
-        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, photo_url, is_active, cohort_year, created_at FROM interns WHERE cohort_year = ? ORDER BY created_at DESC',
+        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, photo_url, is_active, status, cohort_year, created_at FROM interns WHERE cohort_year = ? ORDER BY created_at DESC',
         args: [year],
       });
       res.json(result.rows);
+    } catch (err) { next(err); }
+  });
+
+  /* admin: full detail on one applicant (matric has slashes, so use query) */
+  router.get('/applicant', requireAdmin, async (req, res, next) => {
+    try {
+      const matric = req.query.matric;
+      if (!matric) return res.status(400).json({ error: 'matric required' });
+      const result = await db.execute({
+        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, bio, photo_url, skills, expectations, ADDRESS, phone_number, Parent_contact, is_active, status, cohort_year, created_at FROM interns WHERE Matriculation_Number = ?',
+        args: [matric],
+      });
+      if (!result.rows[0]) return res.status(404).json({ error: 'not found' });
+      res.json(result.rows[0]);
     } catch (err) { next(err); }
   });
 
