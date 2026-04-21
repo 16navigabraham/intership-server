@@ -26,7 +26,7 @@ const router = express.Router();
     });
   }
 
-  router.post('/form', apiKey, upload.single('photo'), async (req, res, next) => {
+  router.post('/form', upload.single('photo'), async (req, res, next) => {
     try {
       const {
         Matriculation_Number,

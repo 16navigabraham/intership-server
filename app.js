@@ -8,6 +8,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 
 import usersRouter from './routes/intern.js';
+import attendanceRouter from './routes/attendance.js';
 
 const app = express();
 const port = process.env.PORT || 3010;
@@ -29,9 +30,11 @@ app.get('/', (req, res) => {
 
 const formLimiter = rateLimit({ windowMs: 60_000, max: 10, message: { error: 'too many submissions, slow down' } });
 const internsLimiter = rateLimit({ windowMs: 60_000, max: 60, message: { error: 'too many requests' } });
+const attendanceLimiter = rateLimit({ windowMs: 60_000, max: 30, message: { error: 'too many requests' } });
 
 app.use('/form', formLimiter);
 app.use('/interns', internsLimiter);
+app.use('/attendance', attendanceLimiter, attendanceRouter);
 
 app.use('/', usersRouter);
 

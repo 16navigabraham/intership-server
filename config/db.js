@@ -37,4 +37,19 @@ try {
 // backfill any NULL cohort_year rows to 2026 (one-time)
 await db.execute('UPDATE interns SET cohort_year = 2026 WHERE cohort_year IS NULL');
 
+// attendance log — one row per intern per date
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS attendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Matriculation_Number TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time_in TEXT,
+    time_out TEXT,
+    hours REAL,
+    cohort_year INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(Matriculation_Number, date)
+  )
+`);
+
 export default db;
