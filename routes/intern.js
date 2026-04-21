@@ -106,7 +106,7 @@ const router = express.Router();
     try {
       const year = Number(req.query.year) || new Date().getFullYear();
       const result = await db.execute({
-        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, is_active, cohort_year, created_at FROM interns WHERE cohort_year = ? ORDER BY created_at DESC',
+        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, photo_url, is_active, cohort_year, created_at FROM interns WHERE cohort_year = ? ORDER BY created_at DESC',
         args: [year],
       });
       res.json(result.rows);
