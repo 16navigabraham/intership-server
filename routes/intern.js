@@ -43,10 +43,12 @@ const router = express.Router();
 
       const photo_url = req.file ? await uploadBuffer(req.file.buffer) : null;
 
+      const cohort_year = new Date().getFullYear();
+
       await db.execute({
         sql: `INSERT INTO interns
-          (Matriculation_Number, full_name, email, Department, bio, photo_url, skills, expectations, ADDRESS, phone_number, Parent_contact)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (Matriculation_Number, full_name, email, Department, bio, photo_url, skills, expectations, ADDRESS, phone_number, Parent_contact, is_active, cohort_year)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
         args: [
           Matriculation_Number ?? null,
           full_name ?? null,
@@ -59,18 +61,54 @@ const router = express.Router();
           ADDRESS ?? null,
           phone_number ?? null,
           Parent_contact ?? null,
+          cohort_year,
         ],
       });
       res.json({ message: 'form submitted' });
     } catch (err) { next(err); }
   });
 
-  /*fetch current year interns*/
+  /* admin: admit or reject an applicant by matric number */
+  router.patch('/admit', apiKey, async (req, res, next) => {
+    try {
+      const { Matriculation_Number, admit } = req.body;
+      if (!Matriculation_Number) {
+        return res.status(400).json({ error: 'Matriculation_Number required' });
+      }
+      const value = admit ? 1 : 0;
+
+      const result = await db.execute({
+        sql: 'UPDATE interns SET is_active = ? WHERE Matriculation_Number = ?',
+        args: [value, Matriculation_Number],
+      });
+
+      if (result.rowsAffected === 0) {
+        return res.status(404).json({ error: 'intern not found' });
+      }
+      res.json({ Matriculation_Number, is_active: value });
+    } catch (err) { next(err); }
+  });
+
+  /* admin: list applicants (pending + admitted) for a cohort year — defaults to current year */
+  router.get('/applicants', apiKey, async (req, res, next) => {
+    try {
+      const year = Number(req.query.year) || new Date().getFullYear();
+      const result = await db.execute({
+        sql: 'SELECT id, Matriculation_Number, full_name, email, Department, is_active, cohort_year, created_at FROM interns WHERE cohort_year = ? ORDER BY created_at DESC',
+        args: [year],
+      });
+      res.json(result.rows);
+    } catch (err) { next(err); }
+  });
+
+  /* public — admitted interns for a cohort year, defaults to current year */
   router.get('/interns', async (req, res, next) => {
     try {
-      const result = await db.execute(
-        'SELECT id, full_name, Department, bio, photo_url, expectations FROM interns WHERE is_active = 1 ORDER BY created_at DESC'
-      );
+      const year = Number(req.query.year) || new Date().getFullYear();
+      const result = await db.execute({
+        sql: 'SELECT id, full_name, Department, bio, photo_url, expectations, cohort_year FROM interns WHERE is_active = 1 AND cohort_year = ? ORDER BY created_at DESC',
+        args: [year],
+      });
       res.json(result.rows);
     } catch (err) {
       next(err);
