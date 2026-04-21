@@ -20,11 +20,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use(cors({ origin: 'https://web3nova.com', }))
+const allowedOrigins = (process.env.CORS_ORIGINS || 'https://web3nova.com')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow no-origin (curl/Postman) and whitelisted origins
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('not allowed by CORS'));
+  },
+}));
 
 
 app.get('/', (req, res) => {
   res.send('intership server is live');
+});
+
+// debug: echo back the caller's IP as seen by the server
+app.get('/whoami', (req, res) => {
+  res.json({ ip: req.ip, headers_xff: req.headers['x-forwarded-for'] });
 });
 
 
