@@ -1,5 +1,5 @@
 import  express from 'express';
-import { apiKey } from '../middleware/apiKey.js';
+import { requireAdmin } from '../middleware/auth.js';
   import cloudinary from '../config/cloudinary.js';
 import multer from 'multer';
 import db from '../config/db.js';
@@ -65,11 +65,23 @@ const router = express.Router();
         ],
       });
       res.json({ message: 'form submitted' });
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (err?.code === 'SQLITE_CONSTRAINT') {
+        const msg = err.cause?.proto?.message || err.message || '';
+        if (msg.includes('interns.email')) {
+          return res.status(409).json({ error: 'this email has already applied' });
+        }
+        if (msg.includes('interns.Matriculation_Number')) {
+          return res.status(409).json({ error: 'this matric number has already applied' });
+        }
+        return res.status(409).json({ error: 'duplicate submission' });
+      }
+      next(err);
+    }
   });
 
   /* admin: admit or reject an applicant by matric number */
-  router.patch('/admit', apiKey, async (req, res, next) => {
+  router.patch('/admit', requireAdmin, async (req, res, next) => {
     try {
       const { Matriculation_Number, admit } = req.body;
       if (!Matriculation_Number) {
@@ -90,7 +102,7 @@ const router = express.Router();
   });
 
   /* admin: list applicants (pending + admitted) for a cohort year — defaults to current year */
-  router.get('/applicants', apiKey, async (req, res, next) => {
+  router.get('/applicants', requireAdmin, async (req, res, next) => {
     try {
       const year = Number(req.query.year) || new Date().getFullYear();
       const result = await db.execute({

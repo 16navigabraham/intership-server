@@ -1,5 +1,5 @@
 import express from 'express';
-import { apiKey } from '../middleware/apiKey.js';
+import { requireAdmin } from '../middleware/auth.js';
 import { hubOnly } from '../middleware/hubOnly.js';
 import db from '../config/db.js';
 
@@ -138,7 +138,7 @@ router.get('/me', async (req, res, next) => {
 });
 
 /* admin: per-intern totals for a cohort year (defaults to current year) */
-router.get('/summary', apiKey, async (req, res, next) => {
+router.get('/summary', requireAdmin, async (req, res, next) => {
   try {
     const year = Number(req.query.year) || new Date().getFullYear();
     const result = await db.execute({
