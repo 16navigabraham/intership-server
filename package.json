@@ -9,6 +9,7 @@
   "type": "module",
   "dependencies": {
     "@libsql/client": "^0.17.2",
+    "@simplewebauthn/server": "^13.3.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "cookie-parser": "~1.4.4",

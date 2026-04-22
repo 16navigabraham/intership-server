@@ -74,4 +74,20 @@ await db.execute(`
 `);
 await db.execute('INSERT OR IGNORE INTO hub_config (id) VALUES (1)');
 
+// passkey credentials — one row per registered device per intern
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS passkey_credentials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    intern_id INTEGER NOT NULL,
+    credential_id TEXT UNIQUE NOT NULL,
+    public_key TEXT NOT NULL,
+    counter INTEGER DEFAULT 0,
+    transports TEXT,
+    device_type TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TEXT,
+    FOREIGN KEY (intern_id) REFERENCES interns(id) ON DELETE CASCADE
+  )
+`);
+
 export default db;

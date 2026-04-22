@@ -128,6 +128,44 @@ const router = express.Router();
     } catch (err) { next(err); }
   });
 
+  /* admin: delete an applicant entirely (removes attendance too).
+     Accepts ?matric=... or ?id=... for rows that don't have a matric. */
+  router.delete('/applicant', requireAdmin, async (req, res, next) => {
+    try {
+      const { matric, id } = req.query;
+      if (!matric && !id) {
+        return res.status(400).json({ error: 'matric or id required' });
+      }
+
+      // Resolve the intern first so we can also clean attendance by matric
+      const found = matric
+        ? await db.execute({
+            sql: 'SELECT id, Matriculation_Number FROM interns WHERE Matriculation_Number = ?',
+            args: [matric],
+          })
+        : await db.execute({
+            sql: 'SELECT id, Matriculation_Number FROM interns WHERE id = ?',
+            args: [Number(id)],
+          });
+
+      const row = found.rows[0];
+      if (!row) return res.status(404).json({ error: 'not found' });
+
+      if (row.Matriculation_Number) {
+        await db.execute({
+          sql: 'DELETE FROM attendance WHERE Matriculation_Number = ?',
+          args: [row.Matriculation_Number],
+        });
+      }
+      await db.execute({
+        sql: 'DELETE FROM interns WHERE id = ?',
+        args: [row.id],
+      });
+
+      res.json({ deleted: true, id: row.id, Matriculation_Number: row.Matriculation_Number });
+    } catch (err) { next(err); }
+  });
+
   /* public — admitted interns for a cohort year, defaults to current year */
   router.get('/interns', async (req, res, next) => {
     try {

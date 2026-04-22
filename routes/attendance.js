@@ -1,7 +1,29 @@
 import express from 'express';
 import { requireAdmin } from '../middleware/auth.js';
 import { hubOnly } from '../middleware/hubOnly.js';
+import { verifyCheckinToken } from './passkey.js';
 import db from '../config/db.js';
+
+/**
+ * Pull the check-in passkey token from the Authorization header and ensure
+ * it matches the submitted matric. Prevents someone from checking in for
+ * another intern even if they know the matric number.
+ */
+function requirePasskeyToken(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  if (!match) return res.status(401).json({ error: 'passkey token required' });
+
+  const payload = verifyCheckinToken(match[1]);
+  if (!payload) return res.status(401).json({ error: 'passkey token invalid or expired' });
+
+  const submittedMatric = req.body?.Matriculation_Number;
+  if (submittedMatric && submittedMatric !== payload.matric) {
+    return res.status(403).json({ error: 'passkey token does not match submitted matric' });
+  }
+  req.checkinAuth = payload;
+  next();
+}
 
 const router = express.Router();
 
@@ -24,8 +46,8 @@ async function findIntern(matric) {
   return result.rows[0];
 }
 
-/* intern: check in — requires hub IP */
-router.post('/check-in', hubOnly, async (req, res, next) => {
+/* intern: check in — requires hub IP + passkey auth token */
+router.post('/check-in', hubOnly, requirePasskeyToken, async (req, res, next) => {
   try {
     const { Matriculation_Number } = req.body;
     if (!Matriculation_Number) {
@@ -58,8 +80,8 @@ router.post('/check-in', hubOnly, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-/* intern: check out — requires hub IP */
-router.patch('/check-out', hubOnly, async (req, res, next) => {
+/* intern: check out — requires hub IP + passkey auth token */
+router.patch('/check-out', hubOnly, requirePasskeyToken, async (req, res, next) => {
   try {
     const { Matriculation_Number } = req.body;
     if (!Matriculation_Number) {

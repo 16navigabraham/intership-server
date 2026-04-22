@@ -11,6 +11,7 @@ import usersRouter from './routes/intern.js';
 import attendanceRouter from './routes/attendance.js';
 import authRouter from './routes/auth.js';
 import hubRouter from './routes/hub.js';
+import passkeyRouter from './routes/passkey.js';
 
 const app = express();
 const port = process.env.PORT || 3010;
@@ -55,6 +56,7 @@ app.use('/interns', internsLimiter);
 app.use('/attendance', attendanceLimiter, attendanceRouter);
 app.use('/auth', authRouter);
 app.use('/hub', hubRouter);
+app.use('/passkey', passkeyRouter);
 
 app.use('/', usersRouter);
 
