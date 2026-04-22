@@ -63,4 +63,15 @@ await db.execute(`
   )
 `);
 
+// hub config — single-row table holding the current allowed hub IP
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS hub_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    current_ip TEXT,
+    updated_at TEXT,
+    updated_by TEXT
+  )
+`);
+await db.execute('INSERT OR IGNORE INTO hub_config (id) VALUES (1)');
+
 export default db;

@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import usersRouter from './routes/intern.js';
 import attendanceRouter from './routes/attendance.js';
 import authRouter from './routes/auth.js';
+import hubRouter from './routes/hub.js';
 
 const app = express();
 const port = process.env.PORT || 3010;
@@ -53,6 +54,7 @@ app.use('/form', formLimiter);
 app.use('/interns', internsLimiter);
 app.use('/attendance', attendanceLimiter, attendanceRouter);
 app.use('/auth', authRouter);
+app.use('/hub', hubRouter);
 
 app.use('/', usersRouter);
 

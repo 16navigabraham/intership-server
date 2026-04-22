@@ -1,23 +1,34 @@
+import db from '../config/db.js';
+
 /**
- * Restricts access to requests coming from the hub's Starlink IP(s).
- * Configure via env var HUB_IPS as a comma-separated list, e.g.
- *   HUB_IPS=143.105.174.155,102.89.32.14
+ * Restricts access to requests coming from the hub's Starlink IP.
+ * Reads the current allowed IP from the hub_config table (updated by admins
+ * via POST /admin/sync-ip when Starlink reboots and gets a new IP).
+ *
+ * Falls back to env HUB_IPS (comma-separated) for bootstrap / emergency use.
  */
-export function hubOnly(req, res, next) {
-  const allowed = (process.env.HUB_IPS || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+export async function hubOnly(req, res, next) {
+  try {
+    const source = req.ip?.replace('::ffff:', '');
+    if (!source) return res.status(400).json({ error: 'could not determine source ip' });
 
-  if (allowed.length === 0) {
-    return res.status(500).json({ error: 'HUB_IPS not configured' });
-  }
+    const result = await db.execute('SELECT current_ip FROM hub_config WHERE id = 1');
+    const dbIp = result.rows[0]?.current_ip;
 
-  // req.ip respects `app.set('trust proxy', 1)` and reads X-Forwarded-For
-  const source = req.ip?.replace('::ffff:', ''); // strip IPv6 prefix on IPv4 addrs
+    const fallback = (process.env.HUB_IPS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
 
-  if (!allowed.includes(source)) {
-    return res.status(403).json({ error: 'check-in only allowed from hub network' });
-  }
-  next();
+    const allowed = [dbIp, ...fallback].filter(Boolean);
+
+    if (allowed.length === 0) {
+      return res.status(500).json({ error: 'hub IP not configured — admin must sync from hub' });
+    }
+
+    if (!allowed.includes(source)) {
+      return res.status(403).json({ error: 'check-in only allowed from hub network' });
+    }
+    next();
+  } catch (err) { next(err); }
 }
