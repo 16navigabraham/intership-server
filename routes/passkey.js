@@ -13,9 +13,9 @@ import db from '../config/db.js';
 const router = express.Router();
 
 // RP (Relying Party) identity — must match the deployed domain
-const rpName = process.env.RP_NAME || 'Web3Nova Internship';
-const rpID = process.env.RP_ID || 'web3nova.org';
-const origin = (process.env.RP_ORIGIN || 'https://www.web3nova.org')
+const rpName = process.env.RP_NAME;
+const rpID = process.env.RP_ID ;
+const origin = (process.env.RP_ORIGIN )
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
@@ -255,6 +255,42 @@ router.delete('/:internId', requireAdmin, async (req, res, next) => {
       args: [internId],
     });
     res.json({ cleared: result.rowsAffected });
+  } catch (err) { next(err); }
+});
+
+// --- UPDATE: matric-based passkey replacement (no verification needed) ---
+
+/* Public: intern can update/replace their passkey using matric number. */
+router.post('/update', async (req, res, next) => {
+  try {
+    const { Matriculation_Number } = req.body;
+    if (!Matriculation_Number) return res.status(400).json({ error: 'Matriculation_Number required' });
+
+    const intern = await findInternByMatric(Matriculation_Number);
+    if (!intern) return res.status(404).json({ error: 'intern not found' });
+
+    // Clear any existing passkey
+    await db.execute({
+      sql: 'DELETE FROM passkey_credentials WHERE intern_id = ?',
+      args: [intern.id],
+    });
+
+    // Generate fresh registration options
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID: Buffer.from(String(intern.id)),
+      userName: intern.email || intern.Matriculation_Number,
+      userDisplayName: intern.full_name || intern.Matriculation_Number,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'required',
+      },
+    });
+
+    setChallenge(`reg:${intern.id}`, options.challenge);
+    res.json({ options, Matriculation_Number: intern.Matriculation_Number, message: 'old passkey cleared, register new one' });
   } catch (err) { next(err); }
 });
 
