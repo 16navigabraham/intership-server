@@ -88,8 +88,13 @@ router.patch('/check-out', hubOnly, requirePasskeyToken, async (req, res, next) 
       return res.status(400).json({ error: 'Matriculation_Number required' });
     }
 
+    const now = new Date();
+    if (now.getHours() < 17) {
+      return res.status(400).json({ error: 'check-out not allowed before 5:00 PM' });
+    }
+
     const date = todayISO();
-    const time_out = new Date().toISOString();
+    const time_out = now.toISOString();
 
     const existing = await db.execute({
       sql: 'SELECT time_in, time_out FROM attendance WHERE Matriculation_Number = ? AND date = ?',
