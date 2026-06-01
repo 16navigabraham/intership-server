@@ -89,7 +89,8 @@ router.patch('/check-out', hubOnly, requirePasskeyToken, async (req, res, next) 
     }
 
     const now = new Date();
-    if (now.getHours() < 17) {
+    const hourWAT = (now.getUTCHours() + 1) % 24; // WAT = UTC+1
+    if (hourWAT < 17) {
       return res.status(400).json({ error: 'check-out not allowed before 5:00 PM' });
     }
 
